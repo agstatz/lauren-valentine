@@ -2,12 +2,72 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Welcome() {
   const [adventureStarted, setAdventureStarted] = useState(false);
   const [selectedDog, setSelectedDog] = useState<string | null>(null);
+  const [hoveredCompanion, setHoveredCompanion] = useState<string | null>(null);
+  const [phase, setPhase] = useState<'selection' | 'map' | 'final'>('selection');
+  const router = useRouter();
 
-  const dogs = ['🐕', '🐩', '🐕‍🦺'];
+  const companions: {
+    id: string;
+    label: string;
+    type: 'emoji' | 'svg' | 'image';
+    content: string | JSX.Element;
+    breed: string;
+    specialAbility: string;
+    stats: {
+      loyalty: number;
+      playfulness: number;
+      intelligence: number;
+      cuteness: number;
+    };
+  }[] = [
+    {
+      id: 'otis',
+      label: 'Otis',
+      type: 'image',
+      content: '/otis_collie.png',
+      breed: 'Border Collie',
+      specialAbility: 'Puzzle Master',
+      stats: {
+        loyalty: 90,
+        playfulness: 75,
+        intelligence: 100,
+        cuteness: 70,
+      },
+    },
+    {
+      id: 'benny',
+      label: 'Benny',
+      type: 'image',
+      content: '/benny_bern.png',
+      breed: 'Bernese Mountain Dog',
+      specialAbility: 'Loyal Companion',
+      stats: {
+        loyalty: 100,
+        playfulness: 80,
+        intelligence: 65,
+        cuteness: 80,
+      },
+    },
+    {
+      id: 'rosie',
+      label: 'Rosie',
+      type: 'image',
+      content: '/rosie_dachshund.png',
+      breed: 'Dachshund',
+      specialAbility: 'Memory Keeper',
+      stats: {
+        loyalty: 90,
+        playfulness: 85,
+        intelligence: 75,
+        cuteness: 100,
+      },
+    },
+  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -272,8 +332,23 @@ export default function Welcome() {
             zIndex: 5,
           }}
         />
-      )}
-      <AnimatePresence mode="wait">
+      )}      {adventureStarted && !selectedDog && (
+        <motion.div
+          className="fixed bg-[#F5F1E8] shadow-2xl pointer-events-none"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          style={{
+            width: '650px',
+            height: '500px',
+            left: 'calc(50vw - 325px)',
+            top: 'calc(50vh - 250px)',
+            outline: '2px dashed #ab9393ff',
+            outlineOffset: '-20px',
+            zIndex: 5,
+          }}
+        />
+      )}      <AnimatePresence mode="wait">
         {!adventureStarted ? (
           <motion.main
             key="welcome"
@@ -307,46 +382,169 @@ export default function Welcome() {
               Start Your Adventure
             </motion.button>
           </motion.main>
-        ) : (
+        ) : phase === 'selection' ? (
           <motion.main
             key="dogselection"
-            className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-center py-32 px-16"
+            className="flex min-h-screen w-full max-w-[650px] flex-col items-center justify-center py-32 px-8 relative z-10"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
           >
             <motion.h1
-              className="text-5xl font-bold text-black font-[family-name:var(--font-playfair-display)]"
+              className="text-4xl sm:text-5xl font-bold text-black font-[family-name:var(--font-playfair-display)] relative z-20"
               variants={itemVariants}
             >
               Pick Your Companion
             </motion.h1>
             <motion.p
-              className="mt-4 text-lg text-gray-700"
+              className="mt-4 text-base sm:text-lg text-gray-700 relative z-20"
               variants={itemVariants}
             >
               Select your favorite dog:
             </motion.p>
             
             <motion.div
-              className="mt-12 flex flex-col items-center gap-6"
+              className="mt-12 flex flex-col items-center gap-6 relative z-20"
               variants={itemVariants}
             >
-              <div className="flex gap-4">
-                {dogs.map((dog, index) => (
-                  <motion.button
-                    key={index}
-                    onClick={() => setSelectedDog(dog)}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`text-5xl p-6 rounded-2xl transition-all ${
-                      selectedDog === dog
-                        ? 'bg-white shadow-xl scale-110'
-                        : 'bg-white/70 hover:bg-white shadow-lg'
-                    }`}
+              <div className="flex gap-4 relative">
+                {companions.map((companion) => (
+                  <div key={companion.id} className="relative">
+                    <motion.button
+                      onClick={() => setSelectedDog(companion.id)}
+                      onMouseEnter={() => setHoveredCompanion(companion.id)}
+                      whileTap={{ scale: 0.95 }}
+                      className={`p-4 rounded-2xl transition-all flex items-center justify-center w-28 h-28 ${
+                        selectedDog === companion.id
+                          ? 'bg-white shadow-xl scale-110'
+                          : 'bg-white/70 hover:bg-white shadow-lg'
+                      }`}
+                      aria-label={`Select ${companion.label}`}
+                    >
+                      {companion.type === 'emoji' ? (
+                        <span className="text-5xl">{companion.content as string}</span>
+                      ) : companion.type === 'image' ? (
+                        <img
+                          src={companion.content as string}
+                          alt={companion.label}
+                          className="w-24 h-24 object-contain"
+                        />
+                      ) : (
+                        <div className="w-24 h-24">{companion.content as JSX.Element}</div>
+                      )}
+                    </motion.button>
+                    
+                  <div
+                    onMouseEnter={(e) => e.stopPropagation()}
+                    onMouseLeave={() => setHoveredCompanion(null)}
+                    className="relative"
                   >
-                    {dog}
-                  </motion.button>
+                    <AnimatePresence mode="wait">
+                      {hoveredCompanion === companion.id && (
+                        <motion.div
+                          key={`popup-${companion.id}`}
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: -120, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          transition={{ duration: 0.3, ease: 'easeOut' }}
+                          className="absolute left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-2xl p-4 w-48 z-50 pointer-events-auto"
+                          layout
+                        >
+                          <div className="flex justify-center mb-3">
+                            {companion.type === 'emoji' ? (
+                              <span className="text-4xl">{companion.content as string}</span>
+                            ) : companion.type === 'image' ? (
+                              <img
+                                src={companion.content as string}
+                                alt={companion.label}
+                                className="w-20 h-20 object-contain"
+                              />
+                            ) : (
+                              <div className="w-20 h-20">{companion.content as JSX.Element}</div>
+                            )}
+                          </div>
+                          <h3 className="font-bold text-lg text-black mb-1 text-center">{companion.label}</h3>
+                          <p className="text-sm text-gray-600 mb-3 text-center">{companion.breed}</p>
+                          
+                          <div className="mb-3 pb-3 border-b border-gray-200">
+                            <p className="text-xs font-semibold text-gray-700 mb-1">✨ Special Ability</p>
+                            <p className="text-sm text-gray-800">{companion.specialAbility}</p>
+                          </div>
+                          
+                          <div className="space-y-2 mb-4">
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="font-semibold text-gray-700">Loyalty</span>
+                                <span className="text-gray-600">{companion.stats.loyalty}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-pink-400 h-2 rounded-full"
+                                  style={{ width: `${companion.stats.loyalty}%` }}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="font-semibold text-gray-700">Playfulness</span>
+                                <span className="text-gray-600">{companion.stats.playfulness}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-yellow-400 h-2 rounded-full"
+                                  style={{ width: `${companion.stats.playfulness}%` }}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="font-semibold text-gray-700">Intelligence</span>
+                                <span className="text-gray-600">{companion.stats.intelligence}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-blue-400 h-2 rounded-full"
+                                  style={{ width: `${companion.stats.intelligence}%` }}
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <div className="flex justify-between text-xs mb-1">
+                                <span className="font-semibold text-gray-700">Cuteness</span>
+                                <span className="text-gray-600">{companion.stats.cuteness}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-purple-400 h-2 rounded-full"
+                                  style={{ width: `${companion.stats.cuteness}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <motion.button
+                            onClick={() => {
+                              setSelectedDog(companion.id);
+                              setHoveredCompanion(null);
+                              router.push(`/map?dog=${companion.id}`);
+                            }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className={`w-full px-4 py-2 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-shadow ${
+                              companion.id === 'otis'
+                                ? 'bg-purple-400'
+                                : companion.id === 'benny'
+                                ? 'bg-blue-500'
+                                : 'bg-pink-500'
+                            }`}
+                          >
+                            Pick {companion.label}
+                          </motion.button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                  </div>
                 ))}
               </div>
               {selectedDog && (
@@ -355,65 +553,15 @@ export default function Welcome() {
                   animate={{ opacity: 1 }}
                   className="mt-4 text-lg text-gray-700 font-medium"
                 >
-                  You selected {selectedDog}!
+                  You selected {companions.find((c) => c.id === selectedDog)?.label}!
                 </motion.p>
               )}
             </motion.div>
           </motion.main>
-        )}
+        ) : null}
       </AnimatePresence>
 
-      {adventureStarted && (
-        <motion.div
-          className="fixed bottom-0 left-0 right-0 p-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <div className="flex items-center justify-center gap-4 max-w-3xl mx-auto">
-            <div className="flex-1 flex items-center gap-4">
-              {/* Step 1: Dog Selection */}
-              <div className="flex flex-col items-center gap-2">
-                <motion.div
-                  className="w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center font-bold text-black"
-                  animate={{ scale: selectedDog ? 1.1 : 1 }}
-                  transition={{ type: 'spring', stiffness: 400 }}
-                >
-                  1
-                </motion.div>
-                <span className="text-sm text-gray-700 font-medium">Pick your companion</span>
-              </div>
 
-              {/* Line between steps */}
-              <motion.div
-                className="flex-1 h-1 bg-white/50 rounded-full"
-                animate={{ backgroundColor: selectedDog ? '#ffffff' : 'rgba(255, 255, 255, 0.5)' }}
-              />
-
-              {/* Step 2: Next Adventure */}
-              <div className="flex flex-col items-center gap-2">
-                <motion.div
-                  className="w-12 h-12 rounded-full bg-white/50 shadow-lg flex items-center justify-center font-bold text-gray-600"
-                >
-                  2
-                </motion.div>
-                <span className="text-sm text-gray-700 font-medium">Next</span>
-              </div>
-
-              {/* Line between steps */}
-              <motion.div className="flex-1 h-1 bg-white/50 rounded-full" />
-
-              {/* Step 3: Final */}
-              <div className="flex flex-col items-center gap-2">
-                <motion.div className="w-12 h-12 rounded-full bg-white/50 shadow-lg flex items-center justify-center font-bold text-gray-600">
-                  3
-                </motion.div>
-                <span className="text-sm text-gray-700 font-medium">Final</span>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }
