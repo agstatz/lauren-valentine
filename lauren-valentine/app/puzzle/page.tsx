@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface CrosswordCell {
@@ -23,6 +23,8 @@ export default function Puzzle() {
   const [isTextComplete, setIsTextComplete] = useState(false);
   const [cells, setCells] = useState<CrosswordCell[]>([]);
   const [focusedCell, setFocusedCell] = useState<string | null>(null);
+  const [direction, setDirection] = useState<'across' | 'down'>('across');
+  const inputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   const dogImages = {
     otis: '/otis_collie.png',
@@ -96,6 +98,12 @@ export default function Puzzle() {
   }, []);
 
   useEffect(() => {
+    if (focusedCell && inputRefs.current[focusedCell]) {
+      inputRefs.current[focusedCell]?.focus();
+    }
+  }, [focusedCell]);
+
+  useEffect(() => {
     const words = explanationText.split(' ');
     let currentIndex = 0;
 
@@ -123,10 +131,17 @@ export default function Puzzle() {
         cell.id === id ? { ...cell, value: value.toUpperCase() } : cell
       ));
       
-      // Auto-advance to next cell in the word (across by default)
+      // Auto-advance to next cell in the word based on current direction
       if (value.length === 1) {
-        const nextCell = cells.find(c => c.row === row && c.col === col + 1);
-        if (nextCell) setFocusedCell(nextCell.id);
+        if (direction === 'across') {
+          const nextCell = cells.find(c => c.row === row && c.col === col + 1);
+          const nextData = crosswordData.find(d => d.row === row && d.col === col + 1);
+          if (nextCell && !(nextData as any)?.block) setFocusedCell(nextCell.id);
+        } else {
+          const nextCell = cells.find(c => c.row === row + 1 && c.col === col);
+          const nextData = crosswordData.find(d => d.row === row + 1 && d.col === col);
+          if (nextCell && !(nextData as any)?.block) setFocusedCell(nextCell.id);
+        }
       }
     }
   };
@@ -167,7 +182,82 @@ export default function Puzzle() {
   };
 
   const handleCellKeyDown = (e: React.KeyboardEvent, id: string, row: number, col: number) => {
-    if (e.key === 'ArrowRight') {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setDirection(prev => prev === 'across' ? 'down' : 'across');
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      
+      if (e.shiftKey) {
+        // Shift+Tab: Go to previous clue
+        if (direction === 'down') {
+          // Find the previous column with a clue at row 0
+          for (let prevCol = col - 1; prevCol >= 0; prevCol--) {
+            const prevClueCell = cells.find(c => c.row === 0 && c.col === prevCol && c.clueNumber);
+            if (prevClueCell) {
+              setFocusedCell(prevClueCell.id);
+              return;
+            }
+          }
+          // If no more down clues, wrap to last across clue
+          const acrossCells = cells.filter(c => c.clueType === 'across');
+          if (acrossCells.length > 0) {
+            const lastAcrossCell = acrossCells[acrossCells.length - 1];
+            setDirection('across');
+            setFocusedCell(lastAcrossCell.id);
+          }
+        } else {
+          // Find the previous row with an across clue
+          for (let prevRow = row - 1; prevRow >= 0; prevRow--) {
+            const prevClueCell = cells.find(c => c.row === prevRow && c.clueType === 'across');
+            if (prevClueCell) {
+              setFocusedCell(prevClueCell.id);
+              return;
+            }
+          }
+          // If no more across clues, wrap to last down clue
+          const downCells = cells.filter(c => c.row === 0 && c.clueType === 'down');
+          if (downCells.length > 0) {
+            const lastDownCell = downCells[downCells.length - 1];
+            setDirection('down');
+            setFocusedCell(lastDownCell.id);
+          }
+        }
+      } else {
+        // Tab: Go to next clue
+        if (direction === 'down') {
+          // Find the next column with a clue at row 0
+          for (let nextCol = col + 1; nextCol < 5; nextCol++) {
+            const nextClueCell = cells.find(c => c.row === 0 && c.col === nextCol && c.clueNumber);
+            if (nextClueCell) {
+              setFocusedCell(nextClueCell.id);
+              return;
+            }
+          }
+          // If no more down clues, wrap to first across clue
+          const firstAcrossCell = cells.find(c => c.clueType === 'across');
+          if (firstAcrossCell) {
+            setDirection('across');
+            setFocusedCell(firstAcrossCell.id);
+          }
+        } else {
+          // Find the next row with an across clue
+          for (let nextRow = row + 1; nextRow < 5; nextRow++) {
+            const nextClueCell = cells.find(c => c.row === nextRow && c.clueType === 'across');
+            if (nextClueCell) {
+              setFocusedCell(nextClueCell.id);
+              return;
+            }
+          }
+          // If no more across clues, wrap to first down clue
+          const firstDownCell = cells.find(c => c.row === 0 && c.clueType === 'down');
+          if (firstDownCell) {
+            setDirection('down');
+            setFocusedCell(firstDownCell.id);
+          }
+        }
+      }
+    } else if (e.key === 'ArrowRight') {
       const nextCell = cells.find(c => c.row === row && c.col === col + 1);
       if (nextCell) setFocusedCell(nextCell.id);
     } else if (e.key === 'ArrowLeft') {
@@ -269,6 +359,9 @@ export default function Puzzle() {
                                   </span>
                                 )}
                                 <input
+                                  ref={(el) => {
+                                    if (cell?.id) inputRefs.current[cell.id] = el;
+                                  }}
                                   type="text"
                                   maxLength={1}
                                   value={cell?.value || ''}
@@ -276,7 +369,7 @@ export default function Puzzle() {
                                   onKeyDown={(e) => cell && handleCellKeyDown(e, cell.id, cell.row, cell.col)}
                                   onFocus={() => cell && setFocusedCell(cell.id)}
                                   className={`w-full h-full text-center font-bold text-lg text-black focus:outline-none focus:ring-2 focus:ring-pink-400 ${
-                                    focusedCell && getWordCells(cells.find(c => c.id === focusedCell)?.row || 0, cells.find(c => c.id === focusedCell)?.col || 0, 'across').includes(cell?.id || '') ? 'bg-pink-300' : focusedCell === cell?.id ? 'bg-pink-100' : ''
+                                    focusedCell && getWordCells(cells.find(c => c.id === focusedCell)?.row || 0, cells.find(c => c.id === focusedCell)?.col || 0, direction).includes(cell?.id || '') ? 'bg-pink-300' : focusedCell === cell?.id ? 'bg-pink-100' : ''
                                   }`}
                                 />
                               </>

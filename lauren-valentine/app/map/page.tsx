@@ -21,7 +21,7 @@ export default function MapPage() {
   
   const [isTextComplete, setIsTextComplete] = useState(false);
   
-  const storyText = "Ashton has been kidnapped. The only way to find him is to travel through five stages. Each contains a puzzle that reveals a clue. I'll help guide you through the memories to uncover where he might be hiding!";
+  const storyText = "Ashton has been kidnapped! The only way to find him is to travel through five stages. Each contains a puzzle. I'll help guide you through the memories to uncover where he might be hiding!";
 
   useEffect(() => {
     const words = storyText.split(' ');
