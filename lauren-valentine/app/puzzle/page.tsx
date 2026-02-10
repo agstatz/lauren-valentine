@@ -75,7 +75,7 @@ export default function Puzzle() {
     { number: 2, type: 'down', text: 'Some ' },
     { number: 3, type: 'down', text: 'Ill-fated succulent' },
     { number: 4, type: 'down', text: 'Acronym for Ashton\'s original major at Purdue' },
-    { number: 5, type: 'down', text: 'Swooned too hard?' },
+    { number: 5, type: 'down', text: '__/Him' },
     { number: 1, type: 'across', text: 'Institute for Tech Diplomacy' },
     { number: 6, type: 'across', text: 'What we may have been when we met' },
     { number: 7, type: 'across', text: 'Ill-fated succulent' },
@@ -181,6 +181,41 @@ export default function Puzzle() {
     return wordCells;
   };
 
+  const getActiveClueNumber = () => {
+    if (!focusedCell) return null;
+    
+    const currentCell = cells.find(c => c.id === focusedCell);
+    if (!currentCell) return null;
+    
+    const { row, col } = currentCell;
+    
+    if (direction === 'across') {
+      // Find the start of the word (leftmost cell)
+      let startCol = col;
+      while (startCol > 0) {
+        const prevData = crosswordData.find(d => d.row === row && d.col === startCol - 1) as any;
+        if (prevData?.block) break;
+        startCol--;
+      }
+      
+      // Find the cell with the clue number
+      const startCell = cells.find(c => c.row === row && c.col === startCol);
+      return startCell?.clueNumber || null;
+    } else {
+      // Find the start of the word (topmost cell)
+      let startRow = row;
+      while (startRow > 0) {
+        const prevData = crosswordData.find(d => d.row === startRow - 1 && d.col === col) as any;
+        if (prevData?.block) break;
+        startRow--;
+      }
+      
+      // Find the cell with the clue number
+      const startCell = cells.find(c => c.row === startRow && c.col === col);
+      return startCell?.clueNumber || null;
+    }
+  };
+
   const handleCellKeyDown = (e: React.KeyboardEvent, id: string, row: number, col: number) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -254,6 +289,39 @@ export default function Puzzle() {
           if (firstDownCell) {
             setDirection('down');
             setFocusedCell(firstDownCell.id);
+          }
+        }
+      }
+    } else if (e.key === 'Backspace') {
+      e.preventDefault();
+      const currentCell = cells.find(c => c.id === id);
+      
+      // Clear current cell first
+      if (currentCell && currentCell.value) {
+        setCells(cells.map(cell => 
+          cell.id === id ? { ...cell, value: '' } : cell
+        ));
+      } else {
+        // If already empty, move to previous cell based on direction
+        if (direction === 'across') {
+          const prevCell = cells.find(c => c.row === row && c.col === col - 1);
+          const prevData = crosswordData.find(d => d.row === row && d.col === col - 1);
+          if (prevCell && !(prevData as any)?.block) {
+            setFocusedCell(prevCell.id);
+            // Clear the previous cell
+            setCells(cells.map(cell => 
+              cell.id === prevCell.id ? { ...cell, value: '' } : cell
+            ));
+          }
+        } else {
+          const prevCell = cells.find(c => c.row === row - 1 && c.col === col);
+          const prevData = crosswordData.find(d => d.row === row - 1 && d.col === col);
+          if (prevCell && !(prevData as any)?.block) {
+            setFocusedCell(prevCell.id);
+            // Clear the previous cell
+            setCells(cells.map(cell => 
+              cell.id === prevCell.id ? { ...cell, value: '' } : cell
+            ));
           }
         }
       }
@@ -389,13 +457,22 @@ export default function Puzzle() {
                   <div>
                     <h4 className="font-semibold text-base text-gray-800 mb-3 border-b-2 border-pink-300 pb-1">Across</h4>
                     <div className="space-y-2">
-                      {clues.filter(c => c.type === 'across').map((clue) => (
-                        <div key={`${clue.number}-${clue.type}`}>
-                          <p className="text-sm text-gray-800">
-                            <span className="font-semibold">{clue.number}.</span> {clue.text}
-                          </p>
-                        </div>
-                      ))}
+                      {clues.filter(c => c.type === 'across').map((clue) => {
+                        const activeClueNumber = getActiveClueNumber();
+                        const isActive = direction === 'across' && activeClueNumber === clue.number;
+                        return (
+                          <div 
+                            key={`${clue.number}-${clue.type}`}
+                            className={`p-1 rounded transition-colors ${
+                              isActive ? 'bg-pink-300' : ''
+                            }`}
+                          >
+                            <p className="text-sm text-gray-800">
+                              <span className="font-semibold">{clue.number}.</span> {clue.text}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -403,13 +480,22 @@ export default function Puzzle() {
                   <div>
                     <h4 className="font-semibold text-base text-gray-800 mb-3 border-b-2 border-pink-300 pb-1">Down</h4>
                     <div className="space-y-2">
-                      {clues.filter(c => c.type === 'down').map((clue) => (
-                        <div key={`${clue.number}-${clue.type}`}>
-                          <p className="text-sm text-gray-800">
-                            <span className="font-semibold">{clue.number}.</span> {clue.text}
-                          </p>
-                        </div>
-                      ))}
+                      {clues.filter(c => c.type === 'down').map((clue) => {
+                        const activeClueNumber = getActiveClueNumber();
+                        const isActive = direction === 'down' && activeClueNumber === clue.number;
+                        return (
+                          <div 
+                            key={`${clue.number}-${clue.type}`}
+                            className={`p-1 rounded transition-colors ${
+                              isActive ? 'bg-pink-300' : ''
+                            }`}
+                          >
+                            <p className="text-sm text-gray-800">
+                              <span className="font-semibold">{clue.number}.</span> {clue.text}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -422,7 +508,8 @@ export default function Puzzle() {
                   // TODO: Add check answers logic
                   alert('Check answers functionality coming soon!');
                 }}
-                className="px-6 py-2 bg-green-400 text-white rounded-full hover:bg-green-500 transition-colors font-medium"
+                className="px-6 py-2 text-white rounded-full hover:bg-[#3A7D44] transition-colors font-medium"
+                style={{ backgroundColor: '#52945E' }}
               >
                 Check Squares
               </button>
