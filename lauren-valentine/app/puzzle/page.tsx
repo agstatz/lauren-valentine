@@ -24,6 +24,8 @@ export default function Puzzle() {
   const [cells, setCells] = useState<CrosswordCell[]>([]);
   const [focusedCell, setFocusedCell] = useState<string | null>(null);
   const [direction, setDirection] = useState<'across' | 'down'>('across');
+  const [incorrectCells, setIncorrectCells] = useState<Set<string>>(new Set());
+  const [isComplete, setIsComplete] = useState(false);
   const inputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   const dogImages = {
@@ -34,7 +36,7 @@ export default function Puzzle() {
 
   const dogLabel = dog === 'otis' ? 'Otis' : dog === 'benny' ? 'Benny' : dog === 'rosie' ? 'Rosie' : 'Your Companion';
   
-  const explanationText = "This is a mini crossword! Solve it to get the first hint about Ashton's location.";
+  const [explanationText, setExplanationText] = useState("This is a mini crossword! Solve it to get the first hint about Ashton's location.");
 
   // Mini crossword data (5x5 grid)
   const crosswordData = [
@@ -72,9 +74,9 @@ export default function Puzzle() {
 
   const clues = [
     { number: 1, type: 'down', text: 'Ceiling noise when getting ready for bed at Harrison' },
-    { number: 2, type: 'down', text: 'Some ' },
-    { number: 3, type: 'down', text: 'Ill-fated succulent' },
-    { number: 4, type: 'down', text: 'Acronym for Ashton\'s original major at Purdue' },
+    { number: 2, type: 'down', text: 'Some parties at Purdue had a bad one of these' },
+    { number: 3, type: 'down', text: 'Artificial Intelligence Information Technology' },
+    { number: 4, type: 'down', text: 'What people would bring to career fairs' },
     { number: 5, type: 'down', text: '__/Him' },
     { number: 1, type: 'across', text: 'Institute for Tech Diplomacy' },
     { number: 6, type: 'across', text: 'What we may have been when we met' },
@@ -104,6 +106,8 @@ export default function Puzzle() {
   }, [focusedCell]);
 
   useEffect(() => {
+    setDisplayedText('');
+    setIsTextComplete(false);
     const words = explanationText.split(' ');
     let currentIndex = 0;
 
@@ -130,6 +134,13 @@ export default function Puzzle() {
       setCells(cells.map(cell => 
         cell.id === id ? { ...cell, value: value.toUpperCase() } : cell
       ));
+      
+      // Remove the red X from this cell when user types in it
+      if (incorrectCells.has(id)) {
+        const newIncorrectCells = new Set(incorrectCells);
+        newIncorrectCells.delete(id);
+        setIncorrectCells(newIncorrectCells);
+      }
       
       // Auto-advance to next cell in the word based on current direction
       if (value.length === 1) {
@@ -301,6 +312,12 @@ export default function Puzzle() {
         setCells(cells.map(cell => 
           cell.id === id ? { ...cell, value: '' } : cell
         ));
+        // Remove red X when cell is cleared
+        if (incorrectCells.has(id)) {
+          const newIncorrectCells = new Set(incorrectCells);
+          newIncorrectCells.delete(id);
+          setIncorrectCells(newIncorrectCells);
+        }
       } else {
         // If already empty, move to previous cell based on direction
         if (direction === 'across') {
@@ -312,6 +329,12 @@ export default function Puzzle() {
             setCells(cells.map(cell => 
               cell.id === prevCell.id ? { ...cell, value: '' } : cell
             ));
+            // Remove red X from previous cell
+            if (incorrectCells.has(prevCell.id)) {
+              const newIncorrectCells = new Set(incorrectCells);
+              newIncorrectCells.delete(prevCell.id);
+              setIncorrectCells(newIncorrectCells);
+            }
           }
         } else {
           const prevCell = cells.find(c => c.row === row - 1 && c.col === col);
@@ -322,6 +345,12 @@ export default function Puzzle() {
             setCells(cells.map(cell => 
               cell.id === prevCell.id ? { ...cell, value: '' } : cell
             ));
+            // Remove red X from previous cell
+            if (incorrectCells.has(prevCell.id)) {
+              const newIncorrectCells = new Set(incorrectCells);
+              newIncorrectCells.delete(prevCell.id);
+              setIncorrectCells(newIncorrectCells);
+            }
           }
         }
       }
@@ -337,6 +366,35 @@ export default function Puzzle() {
     } else if (e.key === 'ArrowUp') {
       const aboveCell = cells.find(c => c.row === row - 1 && c.col === col);
       if (aboveCell) setFocusedCell(aboveCell.id);
+    }
+  };
+
+  const checkSquares = () => {
+    const newIncorrectCells = new Set<string>();
+    let allCorrect = true;
+
+    cells.forEach((cell) => {
+      const correctData = crosswordData.find(
+        (d) => d.row === cell.row && d.col === cell.col
+      );
+      
+      // Skip blocked cells
+      if ((correctData as any)?.block) return;
+      
+      // Check if the value matches the correct letter
+      if (cell.value !== correctData?.letter) {
+        allCorrect = false;
+        newIncorrectCells.add(cell.id);
+      }
+    });
+
+    setIncorrectCells(newIncorrectCells);
+
+    if (allCorrect) {
+      setIsComplete(true);
+      setExplanationText("You did it! Great job! Click the button to continue to the next stage. The hint is: Ashton's favorite color.");
+    } else {
+      setExplanationText("Ooh so close, try again!");
     }
   };
 
@@ -436,10 +494,19 @@ export default function Puzzle() {
                                   onChange={(e) => cell && handleCellChange(cell.id, e.target.value, cell.row, cell.col)}
                                   onKeyDown={(e) => cell && handleCellKeyDown(e, cell.id, cell.row, cell.col)}
                                   onFocus={() => cell && setFocusedCell(cell.id)}
-                                  className={`w-full h-full text-center font-bold text-lg text-black focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+                                  className={`w-full h-full text-center font-bold text-2xl text-black focus:outline-none focus:ring-2 focus:ring-pink-400 ${
                                     focusedCell && getWordCells(cells.find(c => c.id === focusedCell)?.row || 0, cells.find(c => c.id === focusedCell)?.col || 0, direction).includes(cell?.id || '') ? 'bg-pink-300' : focusedCell === cell?.id ? 'bg-pink-100' : ''
                                   }`}
                                 />
+                                {/* Red X for incorrect cells */}
+                                {cell?.id && cell.value && incorrectCells.has(cell.id) && (
+                                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <svg className="w-12 h-12" viewBox="0 0 24 24">
+                                      <line x1="4" y1="4" x2="20" y2="20" stroke="red" strokeWidth="1.5" />
+                                      <line x1="20" y1="4" x2="4" y2="20" stroke="red" strokeWidth="1.5" />
+                                    </svg>
+                                  </div>
+                                )}
                               </>
                             )}
                           </div>
@@ -451,7 +518,7 @@ export default function Puzzle() {
               </div>
 
               {/* Clues */}
-              <div className="w-64">
+              <div className="w-64 lg:w-80 xl:w-96">
                 <div className="space-y-6">
                   {/* Across Clues */}
                   <div>
@@ -503,16 +570,23 @@ export default function Puzzle() {
             </div>
 
             <div className="flex gap-4 mt-4">
-              <button
-                onClick={() => {
-                  // TODO: Add check answers logic
-                  alert('Check answers functionality coming soon!');
-                }}
-                className="px-6 py-2 text-white rounded-full hover:bg-[#3A7D44] transition-colors font-medium"
-                style={{ backgroundColor: '#52945E' }}
-              >
-                Check Squares
-              </button>
+              {!isComplete ? (
+                <button
+                  onClick={checkSquares}
+                  className="px-6 py-2 text-white rounded-full hover:bg-[#3A7D44] transition-colors font-medium"
+                  style={{ backgroundColor: '#52945E' }}
+                >
+                  Check Squares
+                </button>
+              ) : (
+                <button
+                  onClick={() => router.push(`/map?stage=garden&dog=${dog}`)}
+                  className="px-6 py-2 text-white rounded-full hover:bg-[#3A7D44] transition-colors font-medium"
+                  style={{ backgroundColor: '#52945E' }}
+                >
+                  Continue to Next Stage
+                </button>
+              )}
             </div>
           </div>
         </div>
