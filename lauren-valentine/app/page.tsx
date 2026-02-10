@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useMemo, JSX } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Welcome() {
@@ -95,24 +95,24 @@ export default function Welcome() {
   };
 
   // Decorative elements for welcome page
-  const hearts = Array.from({ length: 8 }, (_, i) => ({
+  const hearts = useMemo(() => Array.from({ length: 8 }, (_, i) => ({
     id: i,
     left: (Math.random() * 120) - 10,
     delay: Math.random() * 0.5,
     duration: 4 + Math.random() * 2,
     sizeVariation: (Math.random() - 0.5) * 20,
     xOffset: (Math.random() - 0.5) * 60,
-  }));
+  })), []);
 
-  const peonies = Array.from({ length: 12 }, (_, i) => ({
+  const peonies = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
     id: i,
     left: (Math.random() * 120) - 10,
     delay: Math.random() * 0.5,
     duration: 5 + Math.random() * 2,
     xOffset: (Math.random() - 0.5) * 60,
-  }));
+  })), []);
 
-  const leaves = Array.from({ length: 35 }, (_, i) => ({
+  const leaves = useMemo(() => Array.from({ length: 35 }, (_, i) => ({
     id: i,
     left: (i / 35) * 120 - 10,
     delay: (i % 7) * 0.05,
@@ -120,12 +120,12 @@ export default function Welcome() {
     isLight: i % 2 === 0,
     sizeVariation: ((i % 3) - 1) * 10,
     xOffset: ((i % 5) - 2) * 25,
-  }));
+  })), []);
 
   return (
     <div className="flex min-h-screen items-center justify-center font-[family-name:var(--font-inter)] flex-col relative overflow-hidden" style={{ backgroundColor: '#C4EBC8' }}>
       {/* Background decorative leaves */}
-      {!adventureStarted && (
+      {(!adventureStarted || phase === 'selection') && (
         <>
           {/* Left side leaves */}
           <div className="absolute left-0 top-0 bottom-0 w-32 pointer-events-none opacity-70">
@@ -175,7 +175,7 @@ export default function Welcome() {
         </>
       )}
       {/* Decorative hearts on left side */}
-      {!adventureStarted && (
+      {(!adventureStarted || phase === 'selection') && (
         <>
           <div className="absolute left-0 top-0 bottom-0 w-32 pointer-events-none">
             {hearts.map((heart) => (
@@ -332,7 +332,8 @@ export default function Welcome() {
             zIndex: 5,
           }}
         />
-      )}      {adventureStarted && !selectedDog && (
+      )}
+      {phase === 'selection' && (
         <motion.div
           className="fixed bg-[#F5F1E8] shadow-2xl pointer-events-none"
           initial={{ opacity: 0, scale: 0.95 }}
@@ -411,8 +412,10 @@ export default function Welcome() {
                 {companions.map((companion) => (
                   <div key={companion.id} className="relative">
                     <motion.button
-                      onClick={() => setSelectedDog(companion.id)}
-                      onMouseEnter={() => setHoveredCompanion(companion.id)}
+                      onClick={() => {
+                        setHoveredCompanion((current) => (current === companion.id ? null : companion.id));
+                      }}
+                      whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
                       className={`p-4 rounded-2xl transition-all flex items-center justify-center w-28 h-28 ${
                         selectedDog === companion.id
@@ -434,22 +437,32 @@ export default function Welcome() {
                       )}
                     </motion.button>
                     
-                  <div
-                    onMouseEnter={(e) => e.stopPropagation()}
-                    onMouseLeave={() => setHoveredCompanion(null)}
-                    className="relative"
-                  >
+                  <div className="relative">
                     <AnimatePresence mode="wait">
                       {hoveredCompanion === companion.id && (
-                        <motion.div
-                          key={`popup-${companion.id}`}
-                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: -120, scale: 1 }}
-                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          transition={{ duration: 0.3, ease: 'easeOut' }}
-                          className="absolute left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-2xl p-4 w-48 z-50 pointer-events-auto"
-                          layout
-                        >
+                        <>
+                          <motion.div
+                            key={`backdrop-${companion.id}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="fixed inset-0 z-40"
+                            onClick={() => {
+                              setHoveredCompanion(null);
+                              setSelectedDog(null);
+                            }}
+                          />
+                          <motion.div
+                            key={`popup-${companion.id}`}
+                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-2xl p-4 w-64 max-h-[80vh] overflow-auto z-50 pointer-events-auto"
+                            onClick={(event) => event.stopPropagation()}
+                            layout
+                          >
                           <div className="flex justify-center mb-3">
                             {companion.type === 'emoji' ? (
                               <span className="text-4xl">{companion.content as string}</span>
@@ -541,21 +554,13 @@ export default function Welcome() {
                             Pick {companion.label}
                           </motion.button>
                         </motion.div>
+                        </>
                       )}
                     </AnimatePresence>
                   </div>
                   </div>
                 ))}
               </div>
-              {selectedDog && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-4 text-lg text-gray-700 font-medium"
-                >
-                  You selected {companions.find((c) => c.id === selectedDog)?.label}!
-                </motion.p>
-              )}
             </motion.div>
           </motion.main>
         ) : null}
