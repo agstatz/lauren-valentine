@@ -453,13 +453,13 @@ export default function Puzzle() {
 
         {/* Content container */}
         <div className="w-full relative z-10 flex items-center justify-center" style={{ height: '85vh' }}>
-          <div className="flex flex-col items-center gap-8">
-            <h1 className="text-5xl font-bold text-slate-900 font-[family-name:var(--font-playfair-display)]">
+          <div className="flex flex-col items-center gap-3">
+            <h1 className="text-3xl font-bold text-slate-900 font-[family-name:var(--font-playfair-display)]">
               Purdue Crossword Puzzle
             </h1>
 
             {/* Crossword Container */}
-            <div className="flex gap-16 items-start w-full max-w-4xl">
+            <div className="flex gap-8 items-start w-full max-w-3xl">
               {/* Crossword Grid */}
               <div className="flex-shrink-0">
                 <div className="border-2 border-gray-800 inline-block">
@@ -473,14 +473,14 @@ export default function Puzzle() {
                         return (
                           <div
                             key={cell?.id}
-                            className={`w-16 h-16 border border-gray-300 flex items-center justify-center relative ${
+                            className={`w-12 h-12 border border-gray-300 flex items-center justify-center relative ${
                               isBlocked ? 'bg-gray-800' : 'bg-white'
                             }`}
                           >
                             {!isBlocked && (
                               <>
                                 {cell?.clueNumber && (
-                                  <span className="absolute top-1 left-1 text-sm font-bold text-gray-700">
+                                  <span className="absolute top-0.5 left-0.5 text-xs font-bold text-gray-700">
                                     {cell.clueNumber}
                                   </span>
                                 )}
@@ -494,14 +494,14 @@ export default function Puzzle() {
                                   onChange={(e) => cell && handleCellChange(cell.id, e.target.value, cell.row, cell.col)}
                                   onKeyDown={(e) => cell && handleCellKeyDown(e, cell.id, cell.row, cell.col)}
                                   onFocus={() => cell && setFocusedCell(cell.id)}
-                                  className={`w-full h-full text-center font-bold text-2xl text-black focus:outline-none focus:ring-2 focus:ring-pink-400 ${
+                                  className={`w-full h-full text-center font-bold text-xl text-black focus:outline-none focus:ring-2 focus:ring-pink-400 ${
                                     focusedCell && getWordCells(cells.find(c => c.id === focusedCell)?.row || 0, cells.find(c => c.id === focusedCell)?.col || 0, direction).includes(cell?.id || '') ? 'bg-pink-300' : focusedCell === cell?.id ? 'bg-pink-100' : ''
                                   }`}
                                 />
                                 {/* Red X for incorrect cells */}
                                 {cell?.id && cell.value && incorrectCells.has(cell.id) && (
                                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <svg className="w-12 h-12" viewBox="0 0 24 24">
+                                    <svg className="w-9 h-9" viewBox="0 0 24 24">
                                       <line x1="4" y1="4" x2="20" y2="20" stroke="red" strokeWidth="1.5" />
                                       <line x1="20" y1="4" x2="4" y2="20" stroke="red" strokeWidth="1.5" />
                                     </svg>
@@ -518,12 +518,12 @@ export default function Puzzle() {
               </div>
 
               {/* Clues */}
-              <div className="w-64 lg:w-80 xl:w-96">
-                <div className="space-y-6">
+              <div className="w-56">
+                <div className="space-y-4">
                   {/* Across Clues */}
                   <div>
-                    <h4 className="font-semibold text-base text-gray-800 mb-3 border-b-2 border-pink-300 pb-1">Across</h4>
-                    <div className="space-y-2">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2 border-b-2 border-pink-300 pb-1">Across</h4>
+                    <div className="space-y-1">
                       {clues.filter(c => c.type === 'across').map((clue) => {
                         const activeClueNumber = getActiveClueNumber();
                         const isActive = direction === 'across' && activeClueNumber === clue.number;
@@ -534,7 +534,7 @@ export default function Puzzle() {
                               isActive ? 'bg-pink-300' : ''
                             }`}
                           >
-                            <p className="text-sm text-gray-800">
+                            <p className="text-xs text-gray-800">
                               <span className="font-semibold">{clue.number}.</span> {clue.text}
                             </p>
                           </div>
@@ -545,8 +545,8 @@ export default function Puzzle() {
 
                   {/* Down Clues */}
                   <div>
-                    <h4 className="font-semibold text-base text-gray-800 mb-3 border-b-2 border-pink-300 pb-1">Down</h4>
-                    <div className="space-y-2">
+                    <h4 className="font-semibold text-sm text-gray-800 mb-2 border-b-2 border-pink-300 pb-1">Down</h4>
+                    <div className="space-y-1">
                       {clues.filter(c => c.type === 'down').map((clue) => {
                         const activeClueNumber = getActiveClueNumber();
                         const isActive = direction === 'down' && activeClueNumber === clue.number;
@@ -557,7 +557,7 @@ export default function Puzzle() {
                               isActive ? 'bg-pink-300' : ''
                             }`}
                           >
-                            <p className="text-sm text-gray-800">
+                            <p className="text-xs text-gray-800">
                               <span className="font-semibold">{clue.number}.</span> {clue.text}
                             </p>
                           </div>
@@ -569,7 +569,7 @@ export default function Puzzle() {
               </div>
             </div>
 
-            <div className="flex gap-4 mt-4">
+            <div className="flex gap-4 mt-2">
               {!isComplete ? (
                 <button
                   onClick={checkSquares}
@@ -580,7 +580,7 @@ export default function Puzzle() {
                 </button>
               ) : (
                 <button
-                  onClick={() => router.push(`/map?stage=garden&dog=${dog}`)}
+                  onClick={() => router.push(`/map?stage=chicago&dog=${dog}`)}
                   className="px-6 py-2 text-white rounded-full hover:bg-[#3A7D44] transition-colors font-medium"
                   style={{ backgroundColor: '#52945E' }}
                 >

@@ -9,6 +9,7 @@ export default function MapPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const dog = searchParams.get('dog');
+  const stage = searchParams.get('stage');
   const [displayedText, setDisplayedText] = useState('');
 
   const dogImages = {
@@ -20,10 +21,34 @@ export default function MapPage() {
   const dogLabel = dog === 'otis' ? 'Otis' : dog === 'benny' ? 'Benny' : dog === 'rosie' ? 'Rosie' : 'Your Companion';
   
   const [isTextComplete, setIsTextComplete] = useState(false);
+
+  // Map coordinates for each stage (percentage-based: top, left)
+  // Coordinates are relative to the map image (0-100%)
+  const stageCoordinates = {
+    purdue: { top: 20, left: 12 },      // Starting position (default)
+    chicago: { top: 8, left: 35 },      // After Purdue puzzle
+    stlouis: { top: 45, left: 25 },     // After Chicago puzzle
+    indy: { top: 25, left: 55 },        // After St. Louis puzzle
+    final: { top: 70, left: 70 },       // Final stage
+  } as Record<string, { top: number; left: number }>;
+
+  // Get current position based on stage (default to purdue/start)
+  const currentPosition = stageCoordinates[stage || 'purdue'] || stageCoordinates.purdue;
   
-  const storyText = "Ashton has been kidnapped! The only way to find him is to travel through five stages. Each contains a puzzle. I'll help guide you through the memories to uncover where he might be hiding!";
+  const storyText = stage === 'final'
+    ? "Only one thing left to do"
+    : stage === 'indy'
+    ? "Are you a birder? Because you just identified a bird! Nap town here we come!"
+    : stage === 'stlouis'
+    ? "Great job! Connections is hard."
+    : stage === 'chicago'
+    ? "Great job solving that puzzle! You're one step closer to finding Ashton. Ready to tackle the next challenge in Chicago?"
+    : "Ashton has been kidnapped! The only way to find him is to travel through five stages. Each contains a puzzle. I'll help guide you through the memories to uncover where he might be hiding!";
 
   useEffect(() => {
+    setDisplayedText('');
+    setIsTextComplete(false);
+    
     const words = storyText.split(' ');
     let currentIndex = 0;
 
@@ -92,14 +117,58 @@ export default function MapPage() {
                   {displayedText}
                 </p>
                 {isTextComplete && (
-                  <motion.button
-                    onClick={() => router.push(`/puzzle?stage=purdue&dog=${dog}`)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="mt-4 px-4 py-2 bg-pink-400 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-shadow"
-                  >
-                    Start Puzzle
-                  </motion.button>
+                  <>
+                    {stage === 'final' && (
+                      <motion.button
+                        onClick={() => router.push(`/final?dog=${dog}`)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="mt-4 px-4 py-2 bg-pink-400 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-shadow"
+                      >
+                        Bring on the Finale
+                      </motion.button>
+                    )}
+                    {stage === 'chicago' && (
+                      <motion.button
+                        onClick={() => router.push(`/stages/chicago?dog=${dog}`)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="mt-4 px-4 py-2 bg-pink-400 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-shadow"
+                      >
+                        Go to Next Round
+                      </motion.button>
+                    )}
+                    {stage === 'stlouis' && (
+                      <motion.button
+                        onClick={() => router.push(`/stages/stlouis?dog=${dog}`)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="mt-4 px-4 py-2 bg-pink-400 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-shadow"
+                      >
+                        Next Stage
+                      </motion.button>
+                    )}
+                    {stage === 'indy' && (
+                      <motion.button
+                        onClick={() => router.push(`/stages/indy?dog=${dog}`)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="mt-4 px-4 py-2 bg-pink-400 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-shadow"
+                      >
+                        Next Stage
+                      </motion.button>
+                    )}
+                    {!stage && (
+                      <motion.button
+                        onClick={() => router.push(`/puzzle?stage=purdue&dog=${dog}`)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="mt-4 px-4 py-2 bg-pink-400 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-shadow"
+                      >
+                        Start Puzzle
+                      </motion.button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -108,14 +177,34 @@ export default function MapPage() {
       )}
 
       {/* Content container */}
-      <div className="max-w-5xl w-full relative z-10 flex flex-col items-center p-8">
+      <div
+        className="max-w-5xl w-full relative z-10 flex flex-col items-center p-8"
+        style={{
+          width: '90vw',
+          maxWidth: '1200px',
+          height: '85vh',
+          maxHeight: '900px',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+        }}
+      >
         <h1 className="text-5xl font-bold mb-12 text-slate-900 font-[family-name:var(--font-playfair-display)] mt-8">
           Adventure Map
         </h1>
 
         {/* Map Display - Primary Focus */}
-        <div className="w-full max-w-3xl mb-8 relative">
-          <div className="relative w-full aspect-[4/3]">
+        <div
+          className="w-full max-w-3xl mb-8 relative"
+          style={{
+            maxHeight: '60vh',
+            overflow: 'auto',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div className="relative w-full aspect-[4/3]" style={{ maxHeight: '100%' }}>
             <Image
               src="/map.png"
               alt="Adventure Map"
@@ -124,8 +213,15 @@ export default function MapPage() {
               priority
             />
             
-            {/* Lauren-v1 and Dog overlay in top left */}
-            <div className="absolute top-[76px] left-[76px] z-20">
+            {/* Lauren-v1 and Dog overlay - positioned based on stage */}
+            <div 
+              className="absolute z-20 transition-all duration-1000 ease-in-out"
+              style={{
+                top: `${currentPosition.top}%`,
+                left: `${currentPosition.left}%`,
+                transform: 'translate(-50%, -50%)', // Center the overlay on the coordinates
+              }}
+            >
               {/* Lauren-v1 Image */}
               <div className="relative w-24 h-24 rounded-lg shadow-lg">
                 <Image

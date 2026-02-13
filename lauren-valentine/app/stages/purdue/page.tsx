@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -17,11 +17,13 @@ interface CrosswordCell {
 
 export default function Page() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const dog = searchParams.get('dog');
   const [displayedText, setDisplayedText] = useState('');
   const [isTextComplete, setIsTextComplete] = useState(false);
   const [cells, setCells] = useState<CrosswordCell[]>([]);
   const [focusedCell, setFocusedCell] = useState<string | null>(null);
+  const [isPuzzleComplete, setIsPuzzleComplete] = useState(false);
 
   const dogImages = {
     otis: '/otis_collie.png',
@@ -117,6 +119,23 @@ export default function Page() {
       ));
     }
   };
+
+  // Check if puzzle is complete
+  useEffect(() => {
+    if (cells.length === 0) return;
+    
+    const correctAnswers = crosswordData.map(data => ({
+      id: `${data.row}-${data.col}`,
+      letter: data.letter
+    }));
+
+    const isComplete = correctAnswers.every(correct => {
+      const cell = cells.find(c => c.id === correct.id);
+      return cell?.value === correct.letter;
+    });
+
+    setIsPuzzleComplete(isComplete);
+  }, [cells]);
 
   const handleCellKeyDown = (e: React.KeyboardEvent, id: string, row: number, col: number) => {
     if (e.key === 'ArrowRight') {
@@ -278,9 +297,18 @@ export default function Page() {
           </div>
         </div>
 
-        <Link href="/" className="inline-block px-4 py-2 bg-pink-100 rounded-full hover:bg-pink-200 transition-colors">
-          Back to Map
-        </Link>
+        {isPuzzleComplete && (
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => router.push(`/map?dog=${dog}&stage=chicago`)}
+            className="mt-6 px-6 py-3 bg-pink-400 text-white font-bold text-lg rounded-full shadow-lg hover:shadow-xl transition-shadow"
+          >
+            Continue to Next Stage
+          </motion.button>
+        )}
       </div>
     </main>
   );
