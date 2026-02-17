@@ -25,10 +25,10 @@ export default function MapPage() {
   // Map coordinates for each stage (percentage-based: top, left)
   // Coordinates are relative to the map image (0-100%)
   const stageCoordinates = {
-    purdue: { top: 20, left: 12 },      // Starting position (default)
-    chicago: { top: 8, left: 35 },      // After Purdue puzzle
-    stlouis: { top: 45, left: 25 },     // After Chicago puzzle
-    indy: { top: 25, left: 55 },        // After St. Louis puzzle
+    purdue: { top: 20, left: 20 },      // Starting position (default)
+    chicago: { top: 20, left: 70 },      // After Purdue puzzle
+    stlouis: { top: 48, left: 34 },     // After Chicago puzzle
+    indy: { top: 70, left: 30 },        // After St. Louis puzzle
     final: { top: 70, left: 70 },       // Final stage
   } as Record<string, { top: number; left: number }>;
 

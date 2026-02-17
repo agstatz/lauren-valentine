@@ -392,7 +392,7 @@ export default function Puzzle() {
 
     if (allCorrect) {
       setIsComplete(true);
-      setExplanationText("You did it! Great job! Click the button to continue to the next stage. The hint is: Ashton's favorite color.");
+      setExplanationText("You did it! Great job! Click the button to continue to the next stage. The first clue is: Ashton's favorite color.");
     } else {
       setExplanationText("Ooh so close, try again!");
     }
